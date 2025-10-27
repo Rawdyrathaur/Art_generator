@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import GoogleAuthButton from './components/GoogleAuthButton';
 import "./login.css";
 
 const Login = () => {
+  const { loginWithEmail, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -10,6 +13,13 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/get-started');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -32,25 +42,17 @@ const Login = () => {
     }
 
     try {
-      // Simulate authentication (replace with real API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use AuthContext for login
+      const result = await loginWithEmail(formData.email, formData.password);
       
-      // For demo purposes, accept any email/password
-      // In real app, this would be an API call
-      if (formData.email && formData.password) {
-        // Store user session (in real app, use proper token management)
-        localStorage.setItem('user', JSON.stringify({
-          email: formData.email,
-          name: formData.email.split('@')[0]
-        }));
-        
-        // Redirect to get-started page after successful login
+      if (result.success) {
         navigate('/get-started');
       } else {
-        setError('Invalid credentials');
+        setError(result.error || 'Invalid credentials');
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      console.error('Login error:', err);
+      setError('Login failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -96,6 +98,15 @@ const Login = () => {
           {loading ? 'Signing in...' : 'Login'}
         </button>
       </form>
+      
+      <div className="auth-divider">
+        <span>or</span>
+      </div>
+      
+      <GoogleAuthButton 
+        onSuccess={() => navigate('/get-started')}
+        onError={(error) => setError(error)}
+      />
       
       <p className="auth-switch">
         Don't have an account? 

@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import GoogleAuthButton from './components/GoogleAuthButton';
 import "./signup.css";
 
 const Signup = () => {
+  const { signUpWithEmail, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -12,6 +15,13 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/get-started');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -46,25 +56,17 @@ const Signup = () => {
     }
 
     try {
-      // Simulate registration (replace with real API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use AuthContext for signup
+      const result = await signUpWithEmail(formData.email, formData.password, formData.name);
       
-      // For demo purposes, accept any valid input
-      // In real app, this would be an API call to create user account
-      if (formData.email && formData.password && formData.name) {
-        // Store user session after successful registration
-        localStorage.setItem('user', JSON.stringify({
-          email: formData.email,
-          name: formData.name
-        }));
-        
-        // Redirect to get-started page after successful signup
+      if (result.success) {
         navigate('/get-started');
       } else {
-        setError('Registration failed');
+        setError(result.error || 'Signup failed');
       }
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      console.error('Signup error:', err);
+      setError('Registration failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -156,6 +158,15 @@ const Signup = () => {
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
+        
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+        
+        <GoogleAuthButton 
+          onSuccess={() => navigate('/get-started')}
+          onError={(error) => setError(error)}
+        />
       
         <p className="auth-switch">
           Already have an account? 
