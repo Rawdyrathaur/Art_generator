@@ -1,4 +1,30 @@
 /* Login Page - Complete Reset */
+
+/* Auth Divider Styles */
+.auth-divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.auth-divider span {
+  background: #1a1a1a;
+  color: #9CA3AF;
+  padding: 0 15px;
+  font-size: 0.875rem;
+  position: relative;
+  z-index: 1;
+}
 * {
   margin: 0;
   padding: 0;

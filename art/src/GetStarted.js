@@ -2,78 +2,234 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import { addArtworkToGallery } from './utils/artworkUtils';
+import apiService from './services/api';
 import './GetStarted.css';
 
 function GetStarted() {
+  const { user, isAuthenticated, loading } = useAuth();
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
   const [selectedTool, setSelectedTool] = useState('photo-to-art');
-  const [user, setUser] = useState(null);
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState('default');
+  const [intensity, setIntensity] = useState(7);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
+  const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  // Check authentication on component mount
+  // Check authentication and AI status on component mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
+    if (loading) return; // Wait for auth to load
+    
+    if (!isAuthenticated) {
       // If not authenticated, redirect to login
       navigate('/login');
+      return;
     }
-  }, [navigate]);
+    
+    // Check AI status if backend is connected
+    if (user?.backendConnected && user?.token) {
+      checkAIStatus();
+    }
+  }, [isAuthenticated, loading, navigate, user]);
+
+  const checkAIStatus = async () => {
+    try {
+      const response = await apiService.apiCall('/admin/config/ai-status');
+      if (response.success) {
+        setAiStatus(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to check AI status:', error);
+      setAiStatus({
+        processing_mode: 'DEMO',
+        message: 'Demo mode - AI status check failed'
+      });
+    }
+  };
+
+  // Demo function to add sample artwork to gallery
+  const addDemoArtwork = () => {
+    if (!user) return;
+
+    const demoArtworks = [
+      {
+        title: 'Sunset Dreams',
+        style: 'Van Gogh',
+        originalImage: 'https://images.unsplash.com/photo-1494790108755-2616c9c6cab8?w=400&h=300&fit=crop',
+        transformedImage: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop',
+        status: 'completed'
+      },
+      {
+        title: 'Urban Portrait',
+        style: 'Picasso',
+        originalImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+        transformedImage: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
+        status: 'completed'
+      },
+      {
+        title: 'Nature\'s Beauty',
+        style: 'Watercolor',
+        originalImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
+        transformedImage: 'https://images.unsplash.com/photo-1549887534-1541e9326642?w=400&h=300&fit=crop',
+        status: 'completed'
+      }
+    ];
+
+    const randomArtwork = demoArtworks[Math.floor(Math.random() * demoArtworks.length)];
+    
+    const newArtwork = addArtworkToGallery(user.email, {
+      ...randomArtwork,
+      userId: user.id
+    });
+
+    if (newArtwork) {
+      alert(`Demo artwork "${newArtwork.title}" added to your gallery! Check the Gallery page to see it.`);
+    } else {
+      alert('Failed to add demo artwork. Please try again.');
+    }
+  };
 
 
+
+  const styleOptions = {
+    'photo-to-art': [
+      { id: 'default', name: 'Auto Style', description: 'Let AI choose the best artistic style' },
+      { id: 'oil-painting', name: 'Oil Painting', description: 'Classic oil painting texture and brushstrokes' },
+      { id: 'watercolor', name: 'Watercolor', description: 'Soft watercolor painting effect' },
+      { id: 'impressionist', name: 'Impressionist', description: 'Monet, Renoir inspired impressionist style' },
+      { id: 'abstract', name: 'Abstract Art', description: 'Modern abstract artistic interpretation' },
+      { id: 'digital-art', name: 'Digital Art', description: 'Modern digital artwork style' }
+    ],
+    'style-transfer': [
+      { id: 'default', name: 'Auto Style', description: 'AI will choose the best style transfer' },
+      { id: 'van-gogh', name: 'Van Gogh', description: 'Starry Night, Sunflowers style' },
+      { id: 'picasso', name: 'Picasso', description: 'Cubist and blue period styles' },
+      { id: 'monet', name: 'Monet', description: 'Water lilies, impressionist garden scenes' },
+      { id: 'da-vinci', name: 'Da Vinci', description: 'Renaissance master techniques' },
+      { id: 'hokusai', name: 'Hokusai', description: 'Japanese woodblock print style' }
+    ],
+    'background-remove': [
+      { id: 'default', name: 'Clean Removal', description: 'Professional background removal' },
+      { id: 'soft-edge', name: 'Soft Edges', description: 'Gentle edge blending' },
+      { id: 'precise', name: 'Precise Cut', description: 'Sharp, exact edges' }
+    ],
+    'color-enhance': [
+      { id: 'default', name: 'Auto Enhance', description: 'AI-powered color enhancement' },
+      { id: 'vibrant', name: 'Vibrant Colors', description: 'Boost saturation and vibrancy' },
+      { id: 'natural', name: 'Natural Colors', description: 'Subtle, realistic enhancement' },
+      { id: 'cinematic', name: 'Cinematic', description: 'Movie-grade color grading' }
+    ],
+    'vintage-filter': [
+      { id: 'default', name: 'Classic Vintage', description: 'Timeless vintage look' },
+      { id: '1950s', name: '1950s Style', description: 'Mid-century vintage aesthetic' },
+      { id: '1970s', name: '1970s Style', description: 'Retro 70s color palette' },
+      { id: 'sepia', name: 'Sepia Tone', description: 'Classic sepia brown tones' },
+      { id: 'film-grain', name: 'Film Grain', description: 'Authentic film texture' }
+    ],
+    'sketch-maker': [
+      { id: 'default', name: 'Pencil Sketch', description: 'Classic pencil drawing style' },
+      { id: 'charcoal', name: 'Charcoal', description: 'Dark charcoal sketch effect' },
+      { id: 'pen-ink', name: 'Pen & Ink', description: 'Detailed pen and ink drawing' },
+      { id: 'line-art', name: 'Line Art', description: 'Clean vector-style line art' }
+    ]
+  };
 
   const tools = [
     {
       id: 'photo-to-art',
       name: 'Photo to Art',
-      description: 'Transform your photos into stunning artwork using AI',
+      description: 'Transform photos into artistic masterpieces using DALL-E 3 + Stability AI',
       icon: '🎨',
       popular: true,
-      features: ['Multiple art styles', 'High quality output', 'Fast processing']
+      features: ['OpenAI DALL-E 3', 'Stability AI XL', 'Ultra-high quality', 'Multiple art styles'],
+      aiModels: ['OpenAI', 'Stability AI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/photo1/150/150',
+        after: 'https://picsum.photos/seed/art1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      previewText: 'Transform any photo into a beautiful artistic painting with professional AI models.'
     },
     {
       id: 'style-transfer',
       name: 'Style Transfer',
-      description: 'Apply famous art styles to your images',
+      description: 'Apply Van Gogh, Picasso styles with professional AI models',
       icon: '🖼️',
       popular: true,
-      features: ['Van Gogh, Picasso & more', 'Style blending', 'Custom intensity']
+      features: ['Famous artist styles', 'Stable Diffusion XL', 'Custom prompts', 'Style blending'],
+      aiModels: ['OpenAI', 'Stability AI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/style1/150/150',
+        after: 'https://picsum.photos/seed/styleart1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      previewText: 'Apply famous art styles like Van Gogh, Picasso, and Monet to your photos.'
     },
     {
       id: 'background-remove',
       name: 'Background Remover',
-      description: 'Remove backgrounds with precision',
+      description: 'Professional background removal with Stability AI precision',
       icon: '✂️',
       popular: false,
-      features: ['Smart edge detection', 'Transparent PNG', 'Batch processing']
+      features: ['Stability AI masking', 'Perfect edge detection', 'Transparent PNG', 'Batch processing'],
+      aiModels: ['Stability AI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/bg1/150/150',
+        after: 'https://picsum.photos/seed/nobg1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      previewText: 'Remove backgrounds with perfect edge detection and transparency.'
     },
     {
       id: 'color-enhance',
       name: 'Color Enhancer',
-      description: 'Enhance colors and vibrancy',
+      description: 'AI-powered upscaling and color enhancement',
       icon: '🌈',
       popular: false,
-      features: ['Auto color correction', 'Vibrance boost', 'Shadow/highlight']
+      features: ['Stability AI upscale', '4K enhancement', 'Smart color correction', 'Detail preservation'],
+      aiModels: ['Stability AI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/color1/150/150',
+        after: 'https://picsum.photos/seed/enhanced1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      previewText: 'Enhance colors, increase resolution, and improve image quality with AI.'
     },
     {
       id: 'vintage-filter',
       name: 'Vintage Filter',
-      description: 'Add nostalgic vintage effects',
+      description: 'Create vintage effects with DALL-E 3 and Stable Diffusion',
       icon: '📸',
       popular: true,
-      features: ['Film grain effects', 'Color grading', 'Retro styles']
+      features: ['Film grain effects', 'Sepia processing', 'Retro AI styles', 'Professional quality'],
+      aiModels: ['OpenAI', 'Stability AI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/vintage1/150/150',
+        after: 'https://picsum.photos/seed/vintageold1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+      previewText: 'Add vintage film effects, sepia tones, and retro styling to your photos.'
     },
     {
       id: 'sketch-maker',
       name: 'Sketch Maker',
-      description: 'Convert photos to pencil sketches',
+      description: 'Convert photos to pencil sketches with advanced AI',
       icon: '✏️',
       popular: false,
-      features: ['Pencil textures', 'Line art styles', 'Adjustable details']
+      features: ['Pencil AI textures', 'Line art generation', 'Adjustable details', 'Professional sketches'],
+      aiModels: ['OpenAI', 'Hugging Face'],
+      previewImages: {
+        before: 'https://picsum.photos/seed/sketch1/150/150',
+        after: 'https://picsum.photos/seed/pencil1/150/150'
+      },
+      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      previewText: 'Convert photos into beautiful pencil sketches and line art drawings.'
     }
   ];
 
@@ -157,16 +313,69 @@ function GetStarted() {
     setImages(prev => prev.filter(img => img.id !== id));
   };
 
-  // Navigate to editor
-  const handleContinue = () => {
-    if (images.length > 0) {
-      navigate('/uploaded-image', { 
-        state: { 
-          image: images[0],
-          selectedTool,
-          allImages: images
-        } 
-      });
+  // Process and navigate to tool-specific pages
+  const handleContinue = async () => {
+    if (images.length === 0) return;
+    
+    setUploadProgress(prev => ({ ...prev, uploading: true }));
+    setError(null);
+    
+    try {
+      // Navigate to specific tool page based on selection
+      const uploadedImage = images[0];
+      
+      switch (selectedTool) {
+        case 'photo-to-art':
+          navigate('/photo-to-art', { 
+            state: { uploadedImage } 
+          });
+          break;
+        case 'style-transfer':
+          navigate('/style-transfer', { 
+            state: { uploadedImage } 
+          });
+          break;
+        case 'background-remove':
+          navigate('/background-remover', { 
+            state: { uploadedImage } 
+          });
+          break;
+        case 'color-enhance':
+          navigate('/color-enhancer', { 
+            state: { uploadedImage } 
+          });
+          break;
+        case 'vintage-filter':
+          navigate('/vintage-filter', { 
+            state: { uploadedImage } 
+          });
+          break;
+        case 'sketch-maker':
+          navigate('/sketch-maker', { 
+            state: { uploadedImage } 
+          });
+          break;
+        default:
+          // Fallback to old behavior if tool not recognized
+          navigate('/process', { 
+            state: { 
+              image: images[0],
+              selectedTool,
+              selectedStyle,
+              customPrompt,
+              intensity,
+              allImages: images,
+              backendConnected: false,
+              mode: 'demo'
+            } 
+          });
+      }
+      
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      setError('Failed to navigate to tool page');
+    } finally {
+      setUploadProgress(prev => ({ ...prev, uploading: false }));
     }
   };
 
@@ -219,12 +428,15 @@ function GetStarted() {
         {/* Tool Selection */}
         <div className="tool-selection-section">
           <h2 className="section-title">Choose Your Tool</h2>
+          
+          
           <div className="tools-grid">
             {tools.map(tool => (
               <button
                 key={tool.id}
                 onClick={() => setSelectedTool(tool.id)}
                 className={`tool-card ${selectedTool === tool.id ? 'selected' : ''}`}
+                data-tool={tool.id}
               >
                 {tool.popular && <div className="popular-badge">Popular</div>}
                 <div className="tool-icon">{tool.icon}</div>
@@ -240,6 +452,16 @@ function GetStarted() {
                   ))}
                 </div>
                 
+                {/* AI Models */}
+                <div className="ai-models">
+                  <span className="ai-label">AI Models:</span>
+                  {tool.aiModels.map((model, index) => (
+                    <span key={index} className={`ai-badge ai-${model.toLowerCase().replace(' ', '-')}`}>
+                      {model}
+                    </span>
+                  ))}
+                </div>
+                
                 {selectedTool === tool.id && (
                   <div className="selected-indicator">
                     ✓
@@ -249,6 +471,119 @@ function GetStarted() {
             ))}
           </div>
         </div>
+
+        {/* Customization Section */}
+        {selectedTool && (
+          <div className="customization-section">
+            <h2 className="section-title">Customize Your Art</h2>
+            
+            {/* Style Selection */}
+            <div className="style-selection">
+              <h3 className="customization-subtitle">Choose Art Style</h3>
+              <div className="style-grid">
+                {styleOptions[selectedTool]?.map(style => (
+                  <button
+                    key={style.id}
+                    onClick={() => setSelectedStyle(style.id)}
+                    className={`style-card ${selectedStyle === style.id ? 'selected' : ''}`}
+                  >
+                    <div className="style-name">{style.name}</div>
+                    <div className="style-description">{style.description}</div>
+                    {selectedStyle === style.id && (
+                      <div className="style-selected-indicator">✓</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Prompt */}
+            <div className="prompt-section">
+              <h3 className="customization-subtitle">Custom Prompt (Optional)</h3>
+              <div className="prompt-input-container">
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder={`Describe how you want your ${tools.find(t => t.id === selectedTool)?.name.toLowerCase()} to look... 
+Examples:
+• "in the style of Van Gogh with swirling brushstrokes"
+• "vibrant colors with a dreamy, ethereal atmosphere"
+• "dark moody tones with dramatic lighting"`}
+                  className="prompt-textarea"
+                  rows={4}
+                  maxLength={500}
+                />
+                <div className="prompt-counter">
+                  {customPrompt.length}/500 characters
+                </div>
+              </div>
+              <div className="prompt-tips">
+                <div className="prompt-tip">
+                  💡 <strong>Tip:</strong> Be specific about colors, mood, and artistic style for best results
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="advanced-settings">
+              <button 
+                className="advanced-toggle"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                <span>Advanced Settings</span>
+                <svg 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  className={`toggle-icon ${showAdvanced ? 'rotated' : ''}`}
+                >
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" fill="none"/>
+                </svg>
+              </button>
+              
+              {showAdvanced && (
+                <div className="advanced-panel">
+                  <div className="setting-group">
+                    <label className="setting-label">
+                      Transformation Intensity
+                      <span className="setting-value">{intensity}/10</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={intensity}
+                      onChange={(e) => setIntensity(parseInt(e.target.value))}
+                      className="intensity-slider"
+                    />
+                    <div className="slider-labels">
+                      <span>Subtle</span>
+                      <span>Dramatic</span>
+                    </div>
+                  </div>
+                  
+                  <div className="intensity-preview">
+                    {intensity <= 3 && (
+                      <div className="intensity-desc subtle">
+                        🎨 Subtle transformation - maintains original photo details
+                      </div>
+                    )}
+                    {intensity > 3 && intensity <= 7 && (
+                      <div className="intensity-desc balanced">
+                        ⚖️ Balanced transformation - artistic but recognizable
+                      </div>
+                    )}
+                    {intensity > 7 && (
+                      <div className="intensity-desc dramatic">
+                        🔥 Dramatic transformation - highly artistic interpretation
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Upload Section */}
         <div className="upload-section">
@@ -337,26 +672,84 @@ function GetStarted() {
             </div>
           )}
 
+          {/* Error Display */}
+          {error && (
+            <div className="error-display">
+              <div className="error-icon">⚠️</div>
+              <div className="error-message">{error}</div>
+              <button 
+                className="error-dismiss"
+                onClick={() => setError(null)}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {/* Process Button */}
           <div className="process-section">
             <button
               onClick={handleContinue}
-              disabled={images.length === 0}
+              disabled={images.length === 0 || uploadProgress.uploading}
               className="process-button"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2"/>
               </svg>
-              {images.length > 0 ? `Transform ${images.length} Image${images.length > 1 ? 's' : ''}` : 'Upload Images First'}
+{uploadProgress.uploading ? 'Processing...' : images.length > 0 ? `Start AI Processing` : 'Upload Images First'}
+            </button>
+            
+            {/* Demo Button */}
+            <button
+              onClick={addDemoArtwork}
+              className="demo-button"
+              title="Add a sample artwork to your gallery for testing"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2"/>
+                <polyline points="17,8 12,3 7,8" stroke="currentColor" strokeWidth="2"/>
+                <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+              Add Demo Artwork
             </button>
             
             {images.length > 0 && (
               <div className="ready-status">
                 <div className="status-icon">✨</div>
                 <p>Ready to create amazing artwork with <strong>{tools.find(t => t.id === selectedTool)?.name}</strong></p>
+                
+                {/* AI Status Display */}
+                {aiStatus && (
+                  <div className="ai-status-display">
+                    <div className="ai-mode-indicator">
+                      {aiStatus.processing_mode === 'REAL_AI' ? (
+                        <span className="ai-mode real-ai">🚀 ULTIMATE AI POWER ACTIVE</span>
+                      ) : (
+                        <span className="ai-mode demo">🎭 Demo Mode</span>
+                      )}
+                    </div>
+                    
+                    {aiStatus.processing_mode === 'REAL_AI' && (
+                      <div className="active-providers">
+                        <span className="providers-label">Active AI Providers:</span>
+                        <div className="provider-badges">
+                          {aiStatus.openai_configured && <span className="provider-badge openai">🥇 OpenAI DALL-E 3</span>}
+                          {aiStatus.stability_configured && <span className="provider-badge stability">🥈 Stability AI XL</span>}
+                          {aiStatus.huggingface_configured && <span className="provider-badge huggingface">🥉 Hugging Face</span>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <div className="process-info">
-                  <span>⏱️ Estimated time: 30-60 seconds</span>
-                  <span>🎯 High quality results guaranteed</span>
+                  <span>⏱️ Processing time: {aiStatus?.processing_mode === 'REAL_AI' ? '30-90 seconds' : '2-5 seconds'}</span>
+                  <span>🎯 {aiStatus?.processing_mode === 'REAL_AI' ? 'Professional AI quality' : 'Demo quality'}</span>
+                  {user && user.backendConnected ? (
+                    <span style={{color: '#4CAF50'}}>🟢 Backend Connected</span>
+                  ) : (
+                    <span style={{color: '#FF9800'}}>🟡 Demo Mode Only</span>
+                  )}
                 </div>
               </div>
             )}

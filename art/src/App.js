@@ -8,13 +8,45 @@ import './App.css';
 import GetStarted from './GetStarted';
 import Login from './Login';
 import Signup from './Signup';
+import ProcessImage from './ProcessImage';
+import Result from './Result';
+import Dashboard from './Dashboard';
 import UploadedImage from './UploadedImage';
+import AISetup from './AISetup';
+import LiveProcessingDemo from './components/LiveProcessingDemo';
 
-function App() {
+// Import tool-specific pages
+import PhotoToArt from './PhotoToArt';
+import StyleTransfer from './StyleTransfer';
+
+// Import authentication
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProfileDropdown from './components/ProfileDropdown';
+
+// Import profile-related pages
+import Profile from './Profile';
+import Gallery from './Gallery';
+import Settings from './Settings';
+import Membership from './Membership';
+import Help from './Help';
+
+// Main app component with authentication logic
+const AppContent = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="App">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Router>
-      <div className="App">
+    <div className="App">
         <Routes>
           <Route
             path="/"
@@ -23,25 +55,46 @@ function App() {
                 {/* Top Logo Bar */}
                 <div className="top-logo-bar">
                   <div className="container">
-                    <Link to="/" className="brand-logo-link">
-                      <div className="brand-logo-top">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                        </svg>
-                        <span>Artify Studio</span>
-                      </div>
-                    </Link>
+                    
+<Link to="/" className="brand-logo-link">
+  <div className="brand-logo-top" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <img 
+      src="/artify_nev.png" 
+      alt="Artify Studio Logo" 
+      width="28" 
+      height="28"
+      style={{ 
+        objectFit: 'contain',
+        display: 'block',
+        flexShrink: 0
+      }}
+      onError={(e) => {
+        console.log('Logo failed to load');
+        e.target.style.display = 'none';
+      }}
+    />
+    <span>Artify Studio</span>
+  </div>
+</Link>
                     <div className="top-nav-actions">
-                      <Link to="/login" className="top-auth-link">Sign In</Link>
-                      <Link to="/signup" className="top-signup-btn">
-                        <span>Sign Up</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </Link>
+                      {isAuthenticated ? (
+                        <>
+                          <ProfileDropdown />
+                        </>
+                      ) : (
+                        <>
+                          <Link to="/login" className="top-auth-link">Sign In</Link>
+                          <Link to="/signup" className="top-signup-btn">
+                            <span>Sign Up</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                              <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </Link>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -50,7 +103,6 @@ function App() {
                 <section className="hero-section">
                   <div className="hero-background">
                     <div className="hero-grid"></div>
-                    <div className="hero-glow"></div>
                   </div>
                   
                   <div className="hero-container">
@@ -76,15 +128,7 @@ function App() {
                       </p>
                       
                       <div className="hero-actions" data-aos="fade-up" data-aos-delay="400">
-                        <Link to="/get-started" className="primary-button hero-cta">
-                          <span>Start Creating Now</span>
-                          <div className="button-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                          <div className="button-shine"></div>
-                        </Link>
+                     
                         
                         <button className="secondary-button">
                           <div className="play-icon">
@@ -110,97 +154,7 @@ function App() {
                       
                     </div>
                     
-                    <div className="hero-quick-styles" data-aos="fade-left" data-aos-delay="600">
-                      <div className="quick-styles-container">
-                        <div className="styles-header">
-                          <h4>Popular Art Styles</h4>
-                          <p>Try these trending transformations</p>
-                        </div>
-                        
-                        <div className="styles-grid">
-                          <div className="style-card" data-style="vangogh">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=120&h=120&fit=crop&q=80" alt="Van Gogh Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">Van Gogh</span>
-                          </div>
-                          
-                          <div className="style-card" data-style="picasso">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=120&h=120&fit=crop&q=80" alt="Picasso Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">Picasso</span>
-                          </div>
-                          
-                          <div className="style-card" data-style="watercolor">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1549887534-1541e9326642?w=120&h=120&fit=crop&q=80" alt="Watercolor Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">Watercolor</span>
-                          </div>
-                          
-                          <div className="style-card" data-style="abstract">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1578321272176-b7bbc0679853?w=120&h=120&fit=crop&q=80" alt="Abstract Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">Abstract</span>
-                          </div>
-                          
-                          <div className="style-card" data-style="impressionist">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1577083300146-ddb58dd93df1?w=120&h=120&fit=crop&q=80" alt="Impressionist Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">Impressionist</span>
-                          </div>
-                          
-                          <div className="style-card" data-style="modern">
-                            <div className="style-preview">
-                              <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=120&h=120&fit=crop&q=80" alt="Modern Style" />
-                              <div className="style-overlay">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="style-name">25+ More</span>
-                          </div>
-                        </div>
-                        
-                        <div className="styles-cta">
-                          <Link to="/get-started" className="try-styles-btn">
-                            <span>Try These Styles</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
+                    
                   </div>
                 </section>
                    {/* CTA Section */}
@@ -232,125 +186,12 @@ function App() {
 
 
 {/* Live Processing Demo */}
-<section className="live-demo-section">
-  <div className="demo-background">
-    <div className="demo-pattern"></div>
-    <div className="floating-code">
-      <div className="code-snippet">AI.transform()</div>
-      <div className="code-snippet">style.apply()</div>
-      <div className="code-snippet">quality.enhance()</div>
-    </div>
-  </div>
-
-  <div className="container">
-    <div className="demo-content">
-      <div className="demo-info" data-aos="fade-right">
-        <div className="section-badge">
-          <span>Live Demo</span>
-          <div className="live-indicator"></div>
-        </div>
-        <h2 className="demo-title">
-          Watch AI Transform
-          <span className="highlight"> In Real-Time</span>
-        </h2>
-        <p className="demo-description">
-          Experience the magic of our AI technology as it processes and transforms 
-          images with professional precision. No waiting, just instant results.
-        </p>
-        
-        <div className="demo-features">
-          <div className="demo-feature">
-            <div className="feature-icon">⚡</div>
-            <div className="feature-text">
-              <strong>Lightning Fast</strong>
-              <span>Average processing: 2.3 seconds</span>
-            </div>
-          </div>
-          <div className="demo-feature">
-            <div className="feature-icon">🎯</div>
-            <div className="feature-text">
-              <strong>Pixel Perfect</strong>
-              <span>Preserves image quality & details</span>
-            </div>
-          </div>
-          <div className="demo-feature">
-            <div className="feature-icon">🔄</div>
-            <div className="feature-text">
-              <strong>Multiple Styles</strong>
-              <span>25+ artistic transformations</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="demo-cta">
-          <Link to="/get-started" className="demo-try-btn">
-            <span>Try It Yourself</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </Link>
-        </div>
-      </div>
-
-      <div className="demo-visual" data-aos="fade-left">
-        <div className="demo-container">
-          <div className="demo-screen">
-            <div className="demo-header">
-              <div className="demo-controls">
-                <div className="control-dot red"></div>
-                <div className="control-dot yellow"></div>
-                <div className="control-dot green"></div>
-              </div>
-              <div className="demo-title-bar">Artify Studio - Live Processing</div>
-            </div>
-            
-            <div className="demo-workspace">
-              <div className="demo-sidebar">
-                <div className="style-selector">
-                  <div className="style-option active">Van Gogh</div>
-                  <div className="style-option">Picasso</div>
-                  <div className="style-option">Watercolor</div>
-                  <div className="style-option">Abstract</div>
-                </div>
-              </div>
-              
-              <div className="demo-canvas">
-                <div className="processing-animation">
-                  <div className="image-placeholder">
-                    <img src="https://images.unsplash.com/photo-1494790108755-2616c9c6cab8?w=300&h=200&fit=crop" alt="Demo" />
-                    <div className="processing-overlay">
-                      <div className="processing-grid">
-                        {[...Array(16)].map((_, i) => (
-                          <div key={i} className={`grid-cell cell-${i}`}></div>
-                        ))}
-                      </div>
-                      <div className="processing-progress">
-                        <div className="progress-bar"></div>
-                        <div className="progress-text">Processing... 89%</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="demo-effects">
-            <div className="effect-ring ring-1"></div>
-            <div className="effect-ring ring-2"></div>
-            <div className="effect-ring ring-3"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<LiveProcessingDemo />
 
   {/* Features Section */}
                 <section className="features-section">
                   <div className="section-background">
                     <div className="floating-elements">
-                      <div className="floating-circle"></div>
                       <div className="floating-square"></div>
                       <div className="floating-triangle"></div>
                     </div>
@@ -934,10 +775,35 @@ function App() {
           <Route path="/get-started" element={<GetStarted />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/process" element={<ProcessImage />} />
+          <Route path="/result" element={<Result />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/uploaded-image" element={<UploadedImage />} />
+          <Route path="/ai-setup" element={<AISetup />} />
+          
+          {/* Tool-specific pages */}
+          <Route path="/photo-to-art" element={<PhotoToArt />} />
+          <Route path="/style-transfer" element={<StyleTransfer />} />
+          
+          {/* Profile-related pages */}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/membership" element={<Membership />} />
+          <Route path="/help" element={<Help />} />
         </Routes>
       </div>
-    </Router>
+  );
+};
+
+// Main App wrapper with authentication provider
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 
